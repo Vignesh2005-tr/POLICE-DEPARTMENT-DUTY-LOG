@@ -1,0 +1,231 @@
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  background: #070b14;
+  color: #e2e8f0;
+}
+
+body.tracker-page {
+  min-height: 100vh;
+  color: #dbe7f5;
+}
+
+.mono {
+  font-family: "JetBrains Mono", monospace;
+}
+
+.glass-card {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.94), rgba(10, 15, 28, 0.97));
+  border: 1px solid rgba(56, 189, 248, 0.16);
+  box-shadow: 0 12px 32px -10px rgba(0, 0, 0, 0.7);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(56, 189, 248, 0.34);
+}
+
+.badge-glow {
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
+}
+
+.control-input {
+  background: rgba(5, 10, 22, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #f1f5f9;
+}
+
+.control-input:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14);
+}
+
+.matrix-shell::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+.matrix-shell::-webkit-scrollbar-track {
+  background: #0b1120;
+}
+
+.matrix-shell::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 999px;
+}
+
+.matrix-shell::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
+}
+
+.duty-matrix-table {
+  min-width: 780px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.duty-matrix-table th {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  background: #0f172a;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.duty-matrix-table th:first-child,
+.duty-matrix-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background: #0c1324;
+}
+
+.duty-matrix-table th:first-child {
+  z-index: 20;
+  background: #0f172a;
+}
+
+.duty-matrix-table th,
+.duty-matrix-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.09);
+  border-right: 1px solid rgba(148, 163, 184, 0.06);
+  white-space: nowrap;
+}
+
+.duty-matrix-table tbody tr:hover td {
+  background: rgba(56, 189, 248, 0.07);
+}
+
+.duty-matrix-table tbody tr:hover td:first-child {
+  background: #111d36;
+}
+
+.panel {
+  background: linear-gradient(145deg, rgba(20, 31, 53, 0.96), rgba(9, 15, 29, 0.98));
+  border: 1px solid rgba(94, 165, 255, 0.12);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.28);
+}
+
+.soft-border {
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.control {
+  background: rgba(5, 10, 22, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.control:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+}
+
+.table-shell::-webkit-scrollbar {
+  height: 9px;
+}
+
+.table-shell::-webkit-scrollbar-track {
+  background: #111827;
+}
+
+.table-shell::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 999px;
+}
+
+.duty-table {
+  min-width: 760px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.duty-table th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #111827;
+  color: #91a4bf;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.duty-table th:first-child,
+.duty-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #0d1526;
+}
+
+.duty-table th:first-child {
+  z-index: 4;
+}
+
+.duty-table th,
+.duty-table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.09);
+  border-right: 1px solid rgba(148, 163, 184, 0.055);
+  white-space: nowrap;
+}
+
+.duty-table tbody tr:hover td {
+  background: rgba(56, 189, 248, 0.055);
+}
+
+.duty-table tbody tr:hover td:first-child {
+  background: #101b30;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b1120;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
+}
+
+@media (max-width: 640px) {
+  .duty-table {
+    min-width: 680px;
+  }
+
+  .hide-mobile {
+    display: none;
+  }
+}
+
+@media print {
+  body {
+    background: #070b14 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HRP • Duty Log Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="auth.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="tracker-page">
+  <header class="sticky top-0 z-40 border-b border-slate-800/90 bg-[#070b14]/92 backdrop-blur-xl">
+    <div class="max-w-[1500px] mx-auto px-4 sm:px-6 h-[72px] flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-blue-700 flex items-center justify-center shadow-lg shadow-sky-500/20">
+          <svg class="w-5 h-5" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 2l7 4v6c0 5-3.5 9.74-7 11-3.5-1.26-7-6-7-11V6l7-4z"/><path d="M9 12l2 2 4-4"/></svg>
+        </div>
+        <div>
+          <h1 class="m-0 text-sm sm:text-base font-extrabold tracking-wide text-white">DUTY LOG TRACKER</h1>
+          <p id="statusText" class="m-0 mt-1 text-[11px] text-amber-400 mono">Connecting...</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="index.html" aria-label="Return to the index dashboard" class="px-3 py-2 rounded-lg soft-border text-xs font-bold text-slate-300 hover:bg-slate-800 no-underline">← Index</a>
+        <a id="openSheetLink" href="https://docs.google.com/spreadsheets/d/1VnyvPjXEz6DPfe_6t8_zuLSqmfCyqRhWNg5J_9kyg0k/edit?usp=sharing" target="_blank" rel="noopener noreferrer" aria-label="Open POLICE DEPARTMENT DUTY LOG TRACKER in Google Sheets" title="POLICE DEPARTMENT DUTY LOG TRACKER" class="px-3 py-2 rounded-lg bg-emerald-500/15 border border-emerald-400/30 text-xs font-bold text-emerald-300 no-underline hover:bg-emerald-500/25 whitespace-nowrap"><span class="hidden sm:inline">POLICE DEPARTMENT DUTY LOG TRACKER ↗</span><span class="sm:hidden">Duty Log Sheet ↗</span></a>
+        <button id="refreshBtn" class="admin-only hidden px-3 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-xs font-extrabold text-slate-950">Refresh</button>
+        <button id="adminLoginBtn" class="px-3 py-2 rounded-lg bg-amber-500/15 border border-amber-400/30 text-xs font-bold text-amber-300">Admin Login</button>
+        <button id="adminLogoutBtn" class="hidden px-3 py-2 rounded-lg bg-rose-500/15 border border-rose-400/30 text-xs font-bold text-rose-300">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-[1500px] mx-auto px-4 sm:px-6 py-5 space-y-4">
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div class="panel rounded-2xl p-4"><p class="m-0 text-[10px] uppercase tracking-wider text-slate-400">Officers</p><p id="kpiOfficers" class="m-0 mt-2 text-2xl font-extrabold text-white mono">—</p></div>
+      <div class="panel rounded-2xl p-4"><p class="m-0 text-[10px] uppercase tracking-wider text-slate-400">Logged Dates</p><p id="kpiDates" class="m-0 mt-2 text-2xl font-extrabold text-sky-400 mono">—</p></div>
+      <div class="panel rounded-2xl p-4"><p class="m-0 text-[10px] uppercase tracking-wider text-slate-400">Active Records</p><p id="kpiActive" class="m-0 mt-2 text-2xl font-extrabold text-emerald-400 mono">—</p></div>
+      <div class="panel rounded-2xl p-4 hide-mobile"><p class="m-0 text-[10px] uppercase tracking-wider text-slate-400">Total Duty</p><p id="kpiHours" class="m-0 mt-2 text-2xl font-extrabold text-amber-400 mono">—</p></div>
+    </section>
+
+    <section class="panel rounded-2xl p-3 sm:p-4">
+      <div class="flex flex-col md:flex-row gap-3">
+        <label class="relative flex-1">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">⌕</span>
+          <input id="searchInput" type="search" placeholder="Search officer name" class="control w-full h-11 pl-9 pr-3 rounded-xl text-sm text-slate-100 placeholder-slate-500">
+        </label>
+        <select id="dateFilter" class="control h-11 px-3 rounded-xl text-sm text-slate-200"><option value="ALL">All dates</option></select>
+      </div>
+    </section>
+
+    <section class="panel rounded-2xl overflow-hidden">
+      <div class="px-4 sm:px-5 py-4 border-b border-slate-800/80 flex items-center justify-between gap-3">
+        <div><h2 class="m-0 text-xs font-extrabold uppercase tracking-widest text-white">Officer Duty Records</h2><p id="recordCount" class="m-0 mt-1 text-[11px] text-slate-500">Loading records...</p></div>
+        <span id="viewBadge" class="px-2.5 py-1 rounded-md bg-sky-500/10 border border-sky-400/20 text-[10px] font-bold text-sky-300 mono">ALL DATES</span>
+      </div>
+      <div class="table-shell overflow-auto max-h-[68vh]">
+        <table class="duty-table w-full text-left">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="adminModal" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm">
+    <form id="adminLoginForm" class="panel w-full max-w-sm rounded-2xl p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div><p class="m-0 text-[10px] font-bold uppercase tracking-widest text-amber-400">Restricted Access</p><h2 class="m-0 mt-1 text-xl font-extrabold text-white">Administrator Login</h2></div>
+        <button type="button" id="closeAdminModalBtn" class="w-8 h-8 rounded-lg soft-border text-slate-300">×</button>
+      </div>
+      <label class="block mt-5 text-xs font-bold text-slate-400">Username<input id="adminUsername" type="text" autocomplete="username" class="control mt-2 w-full h-11 px-3 rounded-lg text-sm text-slate-100" required></label>
+      <label class="block mt-4 text-xs font-bold text-slate-400">Password<input id="adminPassword" type="password" autocomplete="current-password" class="control mt-2 w-full h-11 px-3 rounded-lg text-sm text-slate-100" required></label>
+      <p id="adminLoginError" class="hidden m-0 mt-3 text-xs font-bold text-rose-400">Invalid username or password.</p>
+      <button type="submit" class="mt-5 w-full h-11 rounded-lg bg-amber-400 hover:bg-amber-300 text-sm font-extrabold text-slate-950">Sign In</button>
+    </form>
+  </div>
+
+  <script>
+    const DEFAULT_SHEET_ID = "1VnyvPjXEz6DPfe_6t8_zuLSqmfCyqRhWNg5J_9kyg0k";
+    const DEFAULT_SHEET_NAME = "POLICE DEPARTMENT DUTY LOG TRACKER";
+    const SHEET_URL = "https://docs.google.com/spreadsheets/d/1VnyvPjXEz6DPfe_6t8_zuLSqmfCyqRhWNg5J_9kyg0k/edit?usp=sharing";
+
+    let isAdmin = sessionStorage.getItem("hrp_admin_session") === "true";
+    const sheetId = DEFAULT_SHEET_ID;
+    const sheetName = DEFAULT_SHEET_NAME;
+
+    let headers = [], rows = [], dateColumns = [];
+
+    function fetchSheet() {
+      return new Promise((resolve, reject) => {
+        const cb = "trackerCb_" + Math.random().toString(36).slice(2);
+        const script = document.createElement("script");
+        let settled = false;
+        const cleanup = () => {
+          clearTimeout(timer);
+          script.remove();
+          delete window[cb];
+        };
+        const finish = (callback, value) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          callback(value);
+        };
+        const timer = setTimeout(() => finish(reject, new Error("Sheet request timed out")), 15000);
+        window[cb] = response => {
+          if (!response || response.status === "error" || !response.table) {
+            finish(reject, new Error(response?.errors?.[0]?.detailed_message || "Unable to access sheet"));
+            return;
+          }
+          finish(resolve, response.table);
+        };
+        script.onerror = () => finish(reject, new Error("Could not load Google Sheet"));
+        script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&tqx=out:json;responseHandler:${cb}&_=${Date.now()}`;
+        document.body.appendChild(script);
+      });
+    }
+
+    function dateLabel(value) {
+      const raw = String(value || "").trim();
+      if (!raw) return "";
+      const match = raw.match(/Date\((\d{4}),\s*(\d{1,2}),\s*(\d{1,2})(?:,.*)?\)/);
+      if (match) {
+        const date = new Date(Number(match[1]), Number(match[2]), Number(match[3]));
+        return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).replace(/ /g, "-");
+      }
+      const simple = raw.match(/^(\d{1,2})[-/]([A-Za-z]{3})(?:[-/]?(\d{2,4})?)?/);
+      if (simple) return `${simple[1].padStart(2, "0")}-${simple[2].charAt(0).toUpperCase()}${simple[2].slice(1).toLowerCase()}${simple[3] ? "-" + simple[3] : ""}`;
+      return raw;
+    }
+
+    function tableGrid(table) {
+      return (table.rows || []).map(row => (row.c || []).map(cell => {
+        if (!cell) return "";
+        return cell.f !== null && cell.f !== undefined ? cell.f : (cell.v ?? "");
+      }));
+    }
+
+    async function loadTracker() {
+      const status = document.getElementById("statusText");
+      status.textContent = "Loading live records...";
+      status.className = "m-0 mt-1 text-[11px] text-amber-400 mono";
+      try {
+        const table = await fetchSheet();
+        const grid = tableGrid(table);
+        const headerIndex = grid.findIndex(row => row.some(cell => String(cell).toLowerCase().trim() === "officer name"));
+        if (headerIndex < 0) throw new Error("Officer Name header was not found");
+
+        headers = grid[headerIndex].map((value, index) => {
+          const raw = String(value || "").trim();
+          const nextRaw = String(grid[headerIndex][index + 1] || "").trim();
+
+          if (!raw && /^week\s*end$/i.test(nextRaw)) return "WEEK OVER ALL DUTY HRS";
+          if (/^week\s*end$/i.test(raw)) return "WEEK END";
+          if (/^\d{1,2}[-/][A-Za-z]{3}/.test(raw) || /Date\(/.test(raw)) return dateLabel(raw);
+          return raw || `Column ${index + 1}`;
+        });
+        headers = headers.map((h, i) => h === `Column ${i + 1}` && i === 0 ? "S.No" : h);
+
+        rows = grid.slice(headerIndex + 1).filter(row => {
+          const nameIndex = headers.findIndex(h => h.toLowerCase() === "officer name");
+          const name = String(row[nameIndex] || "").trim();
+          return name && !/^total|grand total|summary/i.test(name);
+        });
+
+        dateColumns = headers.map((h, i) => ({ header: h, index: i })).filter(d => /^\d{2}-[A-Za-z]{3}(?:-|$)/.test(d.header));
+        rebuildDateFilter();
+        renderTable();
+
+        const activeCount = rows.reduce((sum, row) => sum + dateColumns.filter(d => Number(String(row[d.index] || "0").replace(/,/g, "")) > 0).length, 0);
+        const totalMinutes = rows.reduce((sum, row) => sum + dateColumns.reduce((s, d) => s + (Number(String(row[d.index] || "0").replace(/,/g, "")) || 0), 0), 0);
+        document.getElementById("kpiOfficers").textContent = rows.length;
+        document.getElementById("kpiDates").textContent = dateColumns.length;
+        document.getElementById("kpiActive").textContent = activeCount;
+        document.getElementById("kpiHours").textContent = `${(totalMinutes / 60).toFixed(1)}h`;
+        status.textContent = `Live • Updated ${new Date().toLocaleTimeString()}`;
+        status.className = "m-0 mt-1 text-[11px] text-emerald-400 mono";
+      } catch (error) {
+        status.textContent = "Connection failed";
+        status.className = "m-0 mt-1 text-[11px] text-rose-400 mono";
+        document.getElementById("recordCount").textContent = error.message;
+      }
+    }
+
+    function rebuildDateFilter() {
+      const select = document.getElementById("dateFilter");
+      select.innerHTML = `<option value="ALL">All dates</option>` + dateColumns.map(d => `<option value="${d.index}">${d.header}</option>`).join("");
+    }
+
+    function renderTable() {
+      const nameIndex = headers.findIndex(h => h.toLowerCase() === "officer name");
+      const selected = document.getElementById("dateFilter").value;
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+
+      let visibleIndexes = headers.map((_, i) => i);
+      if (selected !== "ALL") {
+        visibleIndexes = [0, nameIndex, Number(selected)].filter((v, i, a) => v >= 0 && a.indexOf(v) === i);
+      }
+
+      document.getElementById("tableHead").innerHTML = `<tr>${visibleIndexes.map(i => `<th>${headers[i] || "—"}</th>`).join("")}</tr>`;
+      const visibleRows = rows.filter(row => String(row[nameIndex] || "").toLowerCase().includes(query));
+      document.getElementById("tableBody").innerHTML = visibleRows.length ? visibleRows.map(row => `<tr>${visibleIndexes.map(i => {
+        const raw = row[i];
+        const value = raw === "" || raw === null || raw === undefined ? "—" : raw;
+        const isName = i === nameIndex;
+        return `<td class="${isName ? "font-bold text-white" : "text-slate-300 mono text-xs"}">${value}</td>`;
+      }).join("")}</tr>`).join("") : `<tr><td colspan="${visibleIndexes.length}" class="text-center text-slate-500 py-10">No matching officer records found.</td></tr>`;
+
+      document.getElementById("recordCount").textContent = `${visibleRows.length} of ${rows.length} officers shown`;
+      document.getElementById("viewBadge").textContent = selected === "ALL" ? "ALL DATES" : headers[Number(selected)];
+    }
+
+    function updateAdminUi() {
+      document.querySelectorAll(".admin-only").forEach(element => element.classList.toggle("hidden", !isAdmin));
+      document.getElementById("adminLoginBtn").classList.toggle("hidden", isAdmin);
+      document.getElementById("adminLogoutBtn").classList.toggle("hidden", !isAdmin);
+    }
+
+    document.getElementById("adminLoginBtn").addEventListener("click", () => {
+      document.getElementById("adminModal").classList.remove("hidden");
+      document.getElementById("adminModal").classList.add("flex");
+      document.getElementById("adminUsername").focus();
+    });
+
+    document.getElementById("closeAdminModalBtn").addEventListener("click", () => {
+      document.getElementById("adminModal").classList.add("hidden");
+      document.getElementById("adminModal").classList.remove("flex");
+      document.getElementById("adminLoginError").classList.add("hidden");
+    });
+
+    document.getElementById("adminModal").addEventListener("click", event => {
+      if (event.target.id === "adminModal") document.getElementById("closeAdminModalBtn").click();
+    });
+
+    document.getElementById("adminLoginForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const username = document.getElementById("adminUsername").value.trim();
+      const password = document.getElementById("adminPassword").value;
+      const account = window.HRP_ADMIN_ACCOUNT;
+
+      if (account && username === account.username && password === account.password) {
+        isAdmin = true;
+        sessionStorage.setItem("hrp_admin_session", "true");
+        document.getElementById("adminModal").classList.add("hidden");
+        document.getElementById("adminModal").classList.remove("flex");
+        document.getElementById("adminLoginError").classList.add("hidden");
+        document.getElementById("adminLoginForm").reset();
+        updateAdminUi();
+      } else {
+        document.getElementById("adminLoginError").classList.remove("hidden");
+      }
+    });
+
+    document.getElementById("adminLogoutBtn").addEventListener("click", () => {
+      isAdmin = false;
+      sessionStorage.removeItem("hrp_admin_session");
+      updateAdminUi();
+    });
+
+    document.getElementById("refreshBtn")?.addEventListener("click", () => {
+      if (isAdmin) loadTracker();
+    });
+    document.getElementById("searchInput").addEventListener("input", renderTable);
+    document.getElementById("dateFilter").addEventListener("change", renderTable);
+
+    updateAdminUi();
+    loadTracker();
+  </script>
+</body>
+</html>

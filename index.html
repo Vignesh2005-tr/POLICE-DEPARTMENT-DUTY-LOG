@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HRP • Police Department Duty Log Dashboard 2026</title>
+  <!-- Tailwind CSS & Chart.js CDNs -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="auth.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <!-- Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="min-h-screen antialiased selection:bg-sky-500/30 selection:text-sky-200 flex flex-col">
+
+  <!-- Top Command Header -->
+  <header class="sticky top-0 z-40 border-b border-slate-800/90 bg-[#070b14]/92 backdrop-blur-md">
+    <div class="max-w-[1480px] mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <!-- Brand & Live Status -->
+      <div class="flex items-center gap-3.5">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-sky-500 to-blue-700 flex items-center justify-center shadow-lg shadow-sky-500/20 border border-sky-300/30 shrink-0">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 2l7 4v6c0 5-3.5 9.74-7 11-3.5-1.26-7-6-7-11V6l7-4z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <h1 class="text-base sm:text-xl font-extrabold tracking-tight text-white">HRP • POLICE DEPARTMENT DUTY LOG</h1>
+            <span class="px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider rounded-md bg-sky-500/15 text-sky-300 border border-sky-400/30">2026</span>
+          </div>
+          <p class="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
+            <span id="statusDot" class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span id="statusText">Connecting to live data...</span>
+            <span class="text-slate-600">•</span>
+            <span id="lastUpdated" class="mono text-[11px] text-slate-400">--</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Navigation & Admin Action Controls -->
+      <div class="flex flex-wrap items-center gap-2 no-print">
+        <!-- Built-in View Switcher -->
+        <div class="inline-flex p-1 rounded-xl bg-slate-900/90 border border-slate-700/80" role="tablist">
+          <button id="tabDashboardBtn" type="button" class="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-sky-500 text-slate-950 shadow transition">
+            Executive Dashboard
+          </button>
+          <button id="tabTrackerBtn" type="button" class="px-3.5 py-1.5 text-xs font-bold rounded-lg text-slate-300 hover:text-white transition">
+            Duty Log Tracker
+          </button>
+        </div>
+        <a id="dutySummarySheetAnchor" href="https://docs.google.com/spreadsheets/d/1VnyvPjXEz6DPfe_6t8_zuLSqmfCyqRhWNg5J_9kyg0k/edit?gid=1001001#gid=1001001" target="_blank" rel="noopener" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-400/30 transition">
+          Duty Summary Sheet ↗
+        </a>
+
+        <!-- Admin Controls (Unlocked on Admin Sign-In) -->
+        <label id="autoRefreshControl" class="admin-only hidden flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800/80 border border-slate-700 cursor-pointer select-none">
+          <input id="autoRefreshToggle" type="checkbox" checked class="accent-sky-500 rounded">
+          <span>Auto-Sync (60s)</span>
+        </label>
+        <button id="refreshBtn" type="button" class="admin-only hidden px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-600/25 transition flex items-center gap-1.5">
+          <svg id="refreshIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          Sync Now
+        </button>
+        <button id="printBtn" type="button" onclick="window.print()" class="admin-only hidden px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+          Print / Save PDF
+        </button>
+
+        <!-- Auth Buttons -->
+        <button id="adminLoginBtn" type="button" class="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-400/30 transition">
+          Admin Login
+        </button>
+        <button id="adminLogoutBtn" type="button" class="hidden px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-400/30 transition">
+          Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="max-w-[1480px] w-full mx-auto px-4 sm:px-6 py-6 space-y-6 flex-1">
+
+    <!-- Connection / Access Notice Banner -->
+    <div id="alertBanner" class="admin-only hidden rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs text-amber-200 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <strong class="font-bold text-amber-300">Live Sync Notice:</strong>
+        <span id="alertMessage">Could not fetch live rows. Verify the source is accessible, then click <b>Sync Now</b>.</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="retrySyncBtn" type="button" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold border border-slate-600 transition">
+          Retry Sync
+        </button>
+      </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 1: EXECUTIVE DASHBOARD                                           -->
+    <!-- ===================================================================== -->
+    <div id="dashboardView" class="space-y-6">
+
+      <!-- Period & Filter Bar -->
+      <section class="glass-card rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 no-print">
+        <div class="flex flex-wrap items-center gap-2" id="monthTabs">
+          <!-- Dynamically populated month buttons -->
+        </div>
+        <div class="flex flex-wrap items-center gap-2.5">
+          <select id="weekFilter" class="control-input px-3 py-2 text-xs font-medium rounded-xl">
+            <option value="ALL">All Weeks in Period</option>
+          </select>
+          <select id="activityFilter" class="control-input px-3 py-2 text-xs font-medium rounded-xl">
+            <option value="ALL">All Officers</option>
+            <option value="ACTIVE">Active Duty (&gt; 0 hrs)</option>
+            <option value="INACTIVE">Zero Duty (0 hrs)</option>
+          </select>
+          <div class="relative">
+            <input
+              id="searchInput"
+              type="text"
+              placeholder="Search officer or rank..."
+              class="control-input pl-8 pr-3 py-2 text-xs rounded-xl w-48 sm:w-56 placeholder-slate-500"
+            />
+            <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 Executive KPI Cards -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="glass-card rounded-2xl p-5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Officers</span>
+            <span class="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-400/20">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            </span>
+          </div>
+          <div class="mt-3 flex items-baseline gap-2.5">
+            <span id="kpiTotalOfficers" class="text-3xl font-extrabold text-white mono">--</span>
+            <span id="kpiActiveSub" class="text-xs font-medium text-emerald-400">-- active</span>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1">Registered department roster</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Duty Hours</span>
+            <span class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-400/20">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </span>
+          </div>
+          <div class="mt-3 flex items-baseline gap-2.5">
+            <span id="kpiTotalHours" class="text-3xl font-extrabold text-emerald-400 mono">--</span>
+            <span id="kpiTotalMins" class="text-xs font-medium text-slate-400 mono">-- mins</span>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1" id="kpiAvgHours">Avg -- hrs per active officer</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Top Officer</span>
+            <span class="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-400/20">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </span>
+          </div>
+          <div class="mt-3">
+            <div id="kpiTopOfficer" class="text-2xl font-extrabold text-white truncate">--</div>
+            <div id="kpiTopOfficerHrs" class="text-xs font-semibold text-amber-400 mono mt-0.5">-- hrs logged</div>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1">Highest patrol hours in view</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Peak Duty Date</span>
+            <span class="p-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-400/20">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+          </div>
+          <div class="mt-3">
+            <div id="kpiPeakDate" class="text-2xl font-extrabold text-white mono">--</div>
+            <div id="kpiPeakDateHrs" class="text-xs font-semibold text-purple-400 mono mt-0.5">-- hrs total patrol</div>
+          </div>
+          <p class="text-[11px] text-slate-500 mt-1">Highest single-day force output</p>
+        </div>
+      </section>
+
+      <!-- Charts Grid -->
+      <section class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div class="glass-card rounded-2xl p-5 lg:col-span-2">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div>
+              <h2 id="activityChartTitle" class="text-sm font-bold text-white uppercase tracking-wider">Monthly Active Officers</h2>
+              <p id="activityChartSubtitle" class="text-xs text-slate-400">Officers with duty logged in each month</p>
+            </div>
+            <span id="activityChartBadge" class="px-2.5 py-1 text-[11px] mono rounded-lg bg-slate-900 border border-slate-700 text-sky-300">--</span>
+          </div>
+          <div class="h-64 w-full">
+            <canvas id="monthlyActivityChart"></canvas>
+          </div>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5">
+          <div class="mb-4">
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Top 10 Officers</h2>
+            <p class="text-xs text-slate-400">Ranked by total duty hours</p>
+          </div>
+          <div class="h-64 w-full">
+            <canvas id="topOfficersChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Officer Leaderboard Table -->
+      <section class="glass-card rounded-2xl overflow-hidden">
+        <div class="p-5 border-b border-slate-800/90 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Officer Duty Roster &amp; Breakdown</h2>
+            <p class="text-xs text-slate-400">Click any officer row to inspect their individual daily shift history</p>
+          </div>
+          <div class="flex items-center gap-2 text-xs no-print">
+            <span class="text-slate-400">Sort by:</span>
+            <select id="sortSelect" class="control-input px-3 py-1.5 rounded-xl text-xs">
+              <option value="hours_desc">Duty Hours (High → Low)</option>
+              <option value="hours_asc">Duty Hours (Low → High)</option>
+              <option value="days_desc">Active Days (Most)</option>
+              <option value="sno_asc">Sheet Order (S.No)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-800 bg-slate-950/75 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <th class="py-3.5 px-4">Rank</th>
+                <th class="py-3.5 px-4">S.No</th>
+                <th class="py-3.5 px-4">Officer Name</th>
+                <th class="py-3.5 px-4">Dept Rank</th>
+                <th class="py-3.5 px-4 text-right">Active Days</th>
+                <th class="py-3.5 px-4 text-right">Peak Day</th>
+                <th class="py-3.5 px-4 text-right">Total Mins</th>
+                <th class="py-3.5 px-4 text-right">Duty Hours</th>
+                <th class="py-3.5 px-4 text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody id="rosterTableBody" class="divide-y divide-slate-800/60 text-sm">
+              <tr>
+                <td colspan="9" class="py-10 text-center text-slate-500 text-sm">Synchronizing officer duty roster...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 2: FULL DUTY LOG TRACKER MATRIX                                  -->
+    <!-- ===================================================================== -->
+    <div id="trackerView" class="hidden space-y-5">
+      <!-- Matrix KPI Strip -->
+      <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="glass-card rounded-2xl p-4">
+          <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Roster Officers</p>
+          <p id="trackerKpiOfficers" class="m-0 mt-2 text-2xl font-extrabold text-white mono">--</p>
+        </div>
+        <div class="glass-card rounded-2xl p-4">
+          <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Logged Dates</p>
+          <p id="trackerKpiDates" class="m-0 mt-2 text-2xl font-extrabold text-sky-400 mono">--</p>
+        </div>
+        <div class="glass-card rounded-2xl p-4">
+          <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Active Shift Entries</p>
+          <p id="trackerKpiActive" class="m-0 mt-2 text-2xl font-extrabold text-emerald-400 mono">--</p>
+        </div>
+        <div class="glass-card rounded-2xl p-4">
+          <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Cumulative Duty</p>
+          <p id="trackerKpiHours" class="m-0 mt-2 text-2xl font-extrabold text-amber-400 mono">--</p>
+        </div>
+      </section>
+
+      <!-- Matrix Filter Bar -->
+      <section class="glass-card rounded-2xl p-4 no-print">
+        <div class="flex flex-col md:flex-row gap-3">
+          <label class="relative flex-1">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm">⌕</span>
+            <input
+              id="trackerSearchInput"
+              type="search"
+              placeholder="Filter matrix by officer name or rank..."
+              class="control-input w-full h-11 pl-9 pr-3 rounded-xl text-sm placeholder-slate-500"
+            />
+          </label>
+          <select id="trackerDateFilter" class="control-input h-11 px-3.5 rounded-xl text-sm">
+            <option value="ALL">All Dates &amp; Weekly Summaries</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- Full Sticky-Column Duty Matrix Table -->
+      <section class="glass-card rounded-2xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="m-0 text-xs font-extrabold uppercase tracking-widest text-white">Complete Sheet Matrix • Duty Log Tracker</h2>
+            <p id="trackerRecordCount" class="m-0 mt-1 text-[11px] text-slate-400">Loading records...</p>
+          </div>
+          <span id="trackerViewBadge" class="px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-400/20 text-[10px] font-bold text-sky-300 mono">ALL COLUMNS</span>
+        </div>
+        <div class="matrix-shell overflow-auto max-h-[68vh]">
+          <table class="duty-matrix-table w-full text-left">
+            <thead id="trackerTableHead"></thead>
+            <tbody id="trackerTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- Officer Drill-Down Detail Modal -->
+  <div id="officerModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card rounded-2xl max-w-2xl w-full p-6 border border-sky-500/30 space-y-5 relative">
+      <button id="closeModalBtn" type="button" class="absolute top-4 right-4 p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition" aria-label="Close modal">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <div>
+        <span id="modalRankBadge" class="px-2.5 py-0.5 text-[11px] font-bold uppercase rounded-md bg-sky-500/15 text-sky-300 border border-sky-400/30">OFFICER</span>
+        <h3 id="modalOfficerName" class="text-2xl font-extrabold text-white mt-1.5">--</h3>
+        <p id="modalSummaryLine" class="text-xs text-slate-400 mt-0.5 mono">--</p>
+      </div>
+      <div class="h-48 w-full">
+        <canvas id="modalOfficerChart"></canvas>
+      </div>
+      <div>
+        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Logged Shift Dates</h4>
+        <div id="modalShiftChips" class="flex flex-wrap gap-2 max-h-36 overflow-y-auto pr-1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Login Modal -->
+  <div id="adminModal" class="fixed inset-0 z-[60] hidden bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <form id="adminLoginForm" class="glass-card rounded-2xl w-full max-w-sm p-6 border border-amber-400/30 space-y-4">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-amber-300">Restricted Access</span>
+          <h3 class="text-xl font-extrabold text-white mt-1">Administrator Login</h3>
+        </div>
+        <button type="button" id="closeAdminModalBtn" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition" aria-label="Close">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <label class="block text-xs font-semibold text-slate-400">
+        Username
+        <input id="adminUsername" type="text" autocomplete="username" class="control-input mt-1.5 w-full px-3 py-2.5 rounded-xl text-sm" required>
+      </label>
+      <label class="block text-xs font-semibold text-slate-400">
+        Password
+        <input id="adminPassword" type="password" autocomplete="current-password" class="control-input mt-1.5 w-full px-3 py-2.5 rounded-xl text-sm" required>
+      </label>
+      <p id="adminLoginError" class="hidden text-xs font-semibold text-rose-400">Invalid username or password.</p>
+      <button type="submit" class="w-full px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-sm transition">
+        Sign In
+      </button>
+    </form>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. CONFIGURATION
+    // =========================================================================
+    const SHEET_ID = "1VnyvPjXEz6DPfe_6t8_zuLSqmfCyqRhWNg5J_9kyg0k";
+    const DASHBOARD_TAB = "Duty Summary";
+    const TRACKER_TAB = "POLICE DEPARTMENT DUTY LOG TRACKER";
+    const SUMMARY_PERIOD_LABEL = "Summary Total";
+
+    // =========================================================================
+    // 2. APPLICATION STATE
+    // =========================================================================
+    const state = {
+      isAdmin: sessionStorage.getItem("hrp_admin_session") === "true",
+      activeView: "DASHBOARD", // "DASHBOARD" | "TRACKER"
+      sheetKpis: null,
+      dateColumns: [],         // [{ colIndex, label, month, weekIndex }]
+      weeks: [],               // [{ index, label, dateLabels }]
+      officers: [],            // [{ sno, name, deptRank, daily: { '01-Oct': 280, ... } }]
+      trackerHeaders: [],
+      trackerRows: [],
+      trackerDateCols: [],
+      trackerDateColumns: [],
+      trackerOfficers: [],
+      summaryMode: false,
+      alertBannerVisible: false,
+      selectedMonth: "ALL",
+      selectedWeek: "ALL",
+      activityFilter: "ALL",
+      searchQuery: "",
+      sortBy: "hours_desc"
+    };
+
+    let monthlyActivityChartInstance = null;
+    let topChartInstance = null;
+    let modalChartInstance = null;
+    let autoRefreshTimer = null;
+
+    function setAlertBannerVisible(visible) {
+      state.alertBannerVisible = visible;
+      document.getElementById("alertBanner").classList.toggle("hidden", !state.isAdmin || !visible);
+    }
+
+    function fetchGoogleSheetTab(sheetId, sheetName) {
+      return new Promise((resolve, reject) => {
+        const callbackName = `hrpSheetCb_${Math.random().toString(36).slice(2)}`;
+        const script = document.createElement("script");
+        let settled = false;
+        const cleanup = () => {
+          clearTimeout(timer);
+          script.remove();
+          delete window[callbackName];
+        };
+        const finish = (callback, value) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          callback(value);
+        };
+        const timer = setTimeout(
+          () => finish(reject, new Error(`Timed out loading sheet tab "${sheetName}".`)),
+          15000
+        );
+
+        window[callbackName] = response => {
+          if (!response || response.status === "error" || !response.table) {
+            finish(
+              reject,
+              new Error(response?.errors?.[0]?.detailed_message || `Unable to access sheet tab "${sheetName}".`)
+            );
+            return;
+          }
+          finish(resolve, response.table);
+        };
+        script.onerror = () => finish(reject, new Error(`Could not load sheet tab "${sheetName}".`));
+        script.src = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&tqx=out:json;responseHandler:${callbackName}&_=${Date.now()}`;
+        document.body.appendChild(script);
+      });
+    }
+
+    function tableToGrid(table) {
+      if (!table || !Array.isArray(table.rows)) {
+        throw new Error("Google Sheets returned an invalid table.");
+      }
+      const rows = table.rows.map(row => (row.c || []).map(cell => {
+        if (!cell) return "";
+        return cell.f !== null && cell.f !== undefined ? cell.f : (cell.v ?? "");
+      }));
+      const columnLabels = (table.cols || []).map(column => column.label || "");
+      const hasNamedColumns = columnLabels.some(label => /^(officer\s*name|name)$/i.test(String(label).trim()));
+      return hasNamedColumns ? [columnLabels, ...rows] : rows;
+    }
+
+    function formatGvizDate(value) {
+      const raw = String(value || "").trim();
+      const gvizMatch = raw.match(/Date\((\d{4}),\s*(\d{1,2}),\s*(\d{1,2})(?:,.*)?\)/);
+      const simpleMatch = raw.match(/^(\d{1,2})[-/]([A-Za-z]{3})(?:[-/]?(\d{2,4}))?/);
+      if (!gvizMatch && !simpleMatch) return raw;
+
+      const day = gvizMatch ? Number(gvizMatch[3]) : Number(simpleMatch[1]);
+      const month = gvizMatch
+        ? Number(gvizMatch[2])
+        : ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+            .indexOf(simpleMatch[2].toLowerCase());
+      const year = gvizMatch
+        ? Number(gvizMatch[1])
+        : (simpleMatch[3] ? Number(simpleMatch[3].length === 2 ? `20${simpleMatch[3]}` : simpleMatch[3]) : new Date().getFullYear());
+      if (month < 0 || month > 11 || day < 1 || day > 31) return raw;
+
+      return new Date(year, month, day)
+        .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+        .replace(/ /g, "-");
+    }
+
+    // Extract optional top-level KPI block from Duty Summary columns B:F
+    function extractSummarySheetKpis(grid) {
+      const kpis = {};
+      const labelMap = {
+        "TOTAL PERSONNEL": "totalPersonnel",
+        "ACTIVE OFFICERS": "activeOfficers",
+        "TOTAL DUTY HOURS": "totalDutyHours",
+        "AVG HRS / ACTIVE": "avgHrsActive",
+        "TOP OFFICER": "topOfficer"
+      };
+
+      for (let r = 0; r < Math.min(grid.length, 25); r++) {
+        for (let c = 0; c < Math.min(grid[r].length, 8); c++) {
+          const cellText = String(grid[r][c] || "").trim().toUpperCase();
+          if (labelMap[cellText]) {
+            // Check right-adjacent cells or cell directly below for the KPI value
+            const rightVal = grid[r][c + 1] !== "" && grid[r][c + 1] !== undefined ? grid[r][c + 1] : grid[r][c + 2];
+            const belowVal = grid[r + 1] ? grid[r + 1][c] : "";
+            kpis[labelMap[cellText]] = rightVal !== "" && rightVal !== undefined ? rightVal : belowVal;
+          }
+        }
+      }
+      return Object.keys(kpis).length > 0 ? kpis : null;
+    }
+
+    function parseDutySummary(table) {
+      const grid = tableToGrid(table);
+      const sheetKpis = extractSummarySheetKpis(grid);
+      const headerIdx = grid.findIndex(row => {
+        const headers = row.map(cell => String(cell).trim().toUpperCase());
+        return headers.includes("NAME") &&
+          headers.includes("TOTAL MINS") &&
+          headers.includes("DUTY HOURS") &&
+          headers.includes("ACTIVE DAYS");
+      });
+      if (headerIdx === -1) {
+        throw new Error("Could not find NAME, TOTAL MINS, DUTY HOURS, and ACTIVE DAYS in the Duty Summary tab.");
+      }
+
+      const headers = grid[headerIdx].map(cell => String(cell).trim().toUpperCase());
+      const nameCol = headers.indexOf("NAME");
+      const rankCol = headers.indexOf("RANK");
+      const minsCol = headers.indexOf("TOTAL MINS");
+      const daysCol = headers.indexOf("ACTIVE DAYS");
+      const officers = [];
+      const rows = [];
+      const toNumber = value => {
+        const number = parseFloat(String(value ?? "").replace(/,/g, ""));
+        return Number.isFinite(number) ? number : 0;
+      };
+
+      for (let rowIndex = headerIdx + 1; rowIndex < grid.length; rowIndex++) {
+        const row = grid[rowIndex];
+        const name = String(row[nameCol] || "").trim();
+        if (!name || /^(total|grand\s*total|summary)/i.test(name)) continue;
+
+        const mins = Math.round(toNumber(row[minsCol]));
+        const days = Math.round(toNumber(row[daysCol]));
+        const rank = rankCol === -1 ? "" : String(row[rankCol] || "").trim();
+        const sno = officers.length + 1;
+        officers.push({
+          sno,
+          name,
+          deptRank: rank || "Police Officer",
+          daily: { [SUMMARY_PERIOD_LABEL]: mins },
+          summaryActiveDays: days
+        });
+        rows.push([sno, name, rank, mins, +(mins / 60).toFixed(2), days]);
+      }
+      if (!officers.length) throw new Error("The Duty Summary tab contains no officer rows.");
+
+      return {
+        summaryMode: true,
+        sheetKpis,
+        dateColumns: [{ colIndex: 0, label: SUMMARY_PERIOD_LABEL, month: "SUMMARY", weekIndex: 0 }],
+        weeks: [],
+        officers,
+        headers: ["S.No", "Officer Name", "Rank", "Total Mins", "Duty Hours", "Active Days"],
+        rawRows: rows,
+        rawDateCols: []
+      };
+    }
+
+    function parseDutyTracker(table) {
+      const grid = tableToGrid(table);
+      const headerIdx = grid.findIndex(row =>
+        row.some(cell => String(cell).trim().toLowerCase() === "officer name")
+      );
+      if (headerIdx === -1) {
+        throw new Error(`Could not find the Officer Name header in the "${TRACKER_TAB}" tab.`);
+      }
+
+      const rawHeaderRow = grid[headerIdx];
+      const headers = rawHeaderRow.map((value, index) => {
+        const raw = String(value || "").trim();
+        const nextRaw = String(rawHeaderRow[index + 1] || "").trim();
+        if (!raw && /^week\s*end$/i.test(nextRaw)) return "WEEK DUTY HRS";
+        if (/^week\s*end$/i.test(raw)) return "WEEK END";
+        if (/^\d{1,2}[-/][A-Za-z]{3}/.test(raw) || /Date\(/.test(raw)) return formatGvizDate(raw);
+        return raw || `Col ${index + 1}`;
+      });
+
+      const nameCol = headers.findIndex(h => /^(officer\s*name|name)$/i.test(h));
+      let snoCol = -1;
+      for (let column = nameCol - 1; column >= 0; column--) {
+        if (/^s\.?\s*no$/i.test(headers[column])) {
+          snoCol = column;
+          break;
+        }
+      }
+      if (snoCol === -1 && nameCol > 0) {
+        snoCol = nameCol - 1;
+        headers[snoCol] = "S.No";
+      }
+
+      const matrixStartCol = snoCol !== -1 ? snoCol : nameCol;
+      const occupationCol = headers.findIndex((header, index) =>
+        index >= matrixStartCol && /^(occupation|rank)$/i.test(header)
+      );
+      const dateColumns = [];
+      const weeks = [];
+      let currentWeekDates = [];
+
+      for (let column = nameCol + 1; column < headers.length; column++) {
+        const label = headers[column];
+        const dateMatch = label.match(/^(\d{1,2})-([A-Za-z]{3})/);
+        if (dateMatch) {
+          const month = dateMatch[2].charAt(0).toUpperCase() + dateMatch[2].slice(1, 3).toLowerCase();
+          dateColumns.push({ colIndex: column, label, month, weekIndex: weeks.length });
+          currentWeekDates.push(label);
+        } else if (currentWeekDates.length > 0 && (/duty\s*hr|week\s*end|^col\s+\d+$/i.test(label))) {
+          weeks.push({
+            index: weeks.length,
+            label: `Week ${weeks.length + 1} (${currentWeekDates[0]} – ${currentWeekDates[currentWeekDates.length - 1]})`,
+            dateLabels: [...currentWeekDates]
+          });
+          currentWeekDates = [];
+        }
+      }
+      if (currentWeekDates.length > 0) {
+        weeks.push({
+          index: weeks.length,
+          label: `Week ${weeks.length + 1} (${currentWeekDates[0]} – ${currentWeekDates[currentWeekDates.length - 1]})`,
+          dateLabels: [...currentWeekDates]
+        });
+      }
+
+      const officers = [];
+      const matrixHeaders = headers.slice(matrixStartCol);
+      const matrixRows = [];
+      for (let rowIndex = headerIdx + 1; rowIndex < grid.length; rowIndex++) {
+        const row = grid[rowIndex];
+        const name = String(row[nameCol] || "").trim();
+        if (!name || /^(total|grand\s*total|summary|week)/i.test(name)) continue;
+
+        matrixRows.push(matrixHeaders.map((_, index) => row[matrixStartCol + index] ?? ""));
+        const sno = snoCol !== -1 && row[snoCol] !== "" && row[snoCol] !== undefined
+          ? row[snoCol]
+          : officers.length + 1;
+        const daily = {};
+        dateColumns.forEach(dateColumn => {
+          const value = parseFloat(String(row[dateColumn.colIndex] || "0").replace(/,/g, ""));
+          daily[dateColumn.label] = Number.isFinite(value) && value > 0 ? value : 0;
+        });
+        const occupation = occupationCol === -1 ? "" : String(row[occupationCol] || "").trim();
+        officers.push({ sno, name, deptRank: occupation || "Police Officer", daily });
+      }
+
+      const rawDateCols = matrixHeaders
+        .map((header, index) => ({ header, index }))
+        .filter(column => /^\d{1,2}-[A-Za-z]{3}(?:-|$)/.test(column.header));
+      return { headers: matrixHeaders, rawRows: matrixRows, rawDateCols, dateColumns, weeks, officers };
+    }
+
+    // =========================================================================
+    // 4. LIVE SHEET SYNC
+    // =========================================================================
+    async function syncSheetData() {
+      const refreshIcon = document.getElementById("refreshIcon");
+      const statusDot = document.getElementById("statusDot");
+      const statusText = document.getElementById("statusText");
+      refreshIcon.classList.add("animate-spin");
+
+      try {
+        const [dashboardResult, trackerResult] = await Promise.allSettled([
+          fetchGoogleSheetTab(SHEET_ID, DASHBOARD_TAB).then(parseDutySummary),
+          fetchGoogleSheetTab(SHEET_ID, TRACKER_TAB).then(parseDutyTracker)
+        ]);
+        const errors = [];
+        const loadedTabs = [];
+
+        if (dashboardResult.status === "fulfilled") {
+          const parsed = dashboardResult.value;
+          state.summaryMode = parsed.summaryMode;
+          state.sheetKpis = parsed.sheetKpis;
+          state.dateColumns = parsed.dateColumns;
+          state.weeks = parsed.weeks;
+          state.officers = parsed.officers;
+          rebuildFilterControls();
+          renderDashboard();
+          loadedTabs.push(`${DASHBOARD_TAB} (${state.officers.length} officers)`);
+        } else {
+          errors.push(`Dashboard (${DASHBOARD_TAB}): ${dashboardResult.reason.message}`);
+        }
+
+        if (trackerResult.status === "fulfilled") {
+          const parsed = trackerResult.value;
+          state.trackerHeaders = parsed.headers;
+          state.trackerRows = parsed.rawRows;
+          state.trackerDateCols = parsed.rawDateCols;
+          state.trackerDateColumns = parsed.dateColumns;
+          state.trackerOfficers = parsed.officers;
+          rebuildTrackerDateFilter();
+          renderTrackerMatrix();
+          rebuildFilterControls();
+          renderDashboard();
+          loadedTabs.push(`${TRACKER_TAB} (${state.trackerRows.length} officers)`);
+        } else {
+          errors.push(`Tracker (${TRACKER_TAB}): ${trackerResult.reason.message}`);
+        }
+
+        if (loadedTabs.length) {
+          document.getElementById("lastUpdated").textContent = "Updated " + new Date().toLocaleTimeString();
+        }
+        if (errors.length) {
+          statusDot.className = "inline-block w-2 h-2 rounded-full bg-amber-400";
+          statusText.textContent = loadedTabs.length ? "Partial live data loaded" : "Live Connection Notice";
+          document.getElementById("alertMessage").textContent = errors.join(" ");
+          setAlertBannerVisible(true);
+        } else {
+          setAlertBannerVisible(false);
+          statusDot.className = "inline-block w-2 h-2 rounded-full bg-emerald-400 badge-glow";
+          statusText.textContent = `Live • ${loadedTabs.join(" • ")}`;
+        }
+      } catch (err) {
+        console.error("Live sheet sync failed:", err);
+        statusDot.className = "inline-block w-2 h-2 rounded-full bg-amber-400";
+        statusText.textContent = "Live Connection Notice";
+        document.getElementById("alertMessage").innerHTML =
+          `Could not sync live sheet data (${err.message}). Verify the spreadsheet is accessible, then click <b>Retry Sync</b>.`;
+        setAlertBannerVisible(true);
+      } finally {
+        refreshIcon.classList.remove("animate-spin");
+      }
+    }
+
+    // =========================================================================
+    // 5. EXECUTIVE DASHBOARD RENDERING
+    // =========================================================================
+    function rebuildFilterControls() {
+      const monthColumns = state.summaryMode ? state.trackerDateColumns : state.dateColumns;
+      const months = ["ALL", ...new Set(monthColumns.map(d => d.month))];
+      if (!months.includes(state.selectedMonth)) state.selectedMonth = "ALL";
+
+      const monthTabsEl = document.getElementById("monthTabs");
+      monthTabsEl.innerHTML = months.map(m => {
+        const active = m === state.selectedMonth;
+        const label = m === "ALL"
+          ? (state.summaryMode ? "Duty Summary" : "All Months (2026)")
+          : `${m} 2026`;
+        return `<button type="button" data-month="${m}" class="month-btn px-3.5 py-1.5 text-xs font-bold rounded-xl transition ${
+          active
+            ? "bg-sky-500 text-slate-950 shadow-md shadow-sky-500/25"
+            : "bg-slate-900/90 text-slate-300 hover:bg-slate-800 border border-slate-700/80"
+        }">${label}</button>`;
+      }).join("");
+
+      monthTabsEl.querySelectorAll(".month-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          state.selectedMonth = btn.dataset.month;
+          state.selectedWeek = "ALL";
+          rebuildFilterControls();
+          renderDashboard();
+        });
+      });
+
+      const weekFilterEl = document.getElementById("weekFilter");
+      const currentVal = state.selectedWeek;
+      weekFilterEl.innerHTML = `<option value="ALL">All Weeks (${state.weeks.length})</option>` +
+        state.weeks.map(w => `<option value="${w.index}">${w.label}</option>`).join("");
+      weekFilterEl.value = currentVal;
+      weekFilterEl.classList.toggle("hidden", state.summaryMode);
+    }
+
+    function renderDashboard() {
+      const monthlyView = state.summaryMode && state.selectedMonth !== "ALL";
+      const dashboardDateColumns = monthlyView ? state.trackerDateColumns : state.dateColumns;
+      const dashboardOfficers = monthlyView ? state.trackerOfficers : state.officers;
+      let activeDates = dashboardDateColumns;
+      if (state.selectedMonth !== "ALL") {
+        activeDates = activeDates.filter(d => d.month === state.selectedMonth);
+      }
+      if (state.selectedWeek !== "ALL") {
+        const wIdx = Number(state.selectedWeek);
+        activeDates = activeDates.filter(d => d.weekIndex === wIdx);
+      }
+
+      const activeDateLabels = activeDates.map(d => d.label);
+
+      const computedOfficers = dashboardOfficers.map(off => {
+        let totalMins = 0;
+        let activeDays = 0;
+        let peakMins = 0;
+        let peakDate = "-";
+
+        activeDateLabels.forEach(lbl => {
+          const m = off.daily[lbl] || 0;
+          totalMins += m;
+          if (m > 0) activeDays++;
+          if (m > peakMins) {
+            peakMins = m;
+            peakDate = lbl;
+          }
+        });
+
+        if (state.summaryMode && !monthlyView) {
+          activeDays = off.summaryActiveDays || 0;
+          peakMins = 0;
+          peakDate = "-";
+        }
+
+        return {
+          ...off,
+          totalMins,
+          totalHours: +(totalMins / 60).toFixed(2),
+          activeDays,
+          peakMins,
+          peakDate
+        };
+      });
+
+      const totalOfficers = computedOfficers.length;
+      const activeOfficersCount = computedOfficers.filter(o => o.totalMins > 0).length;
+      const grandTotalMins = computedOfficers.reduce((sum, o) => sum + o.totalMins, 0);
+      const grandTotalHours = +(grandTotalMins / 60).toFixed(2);
+      const avgActiveHrs = activeOfficersCount > 0
+        ? (grandTotalHours / activeOfficersCount).toFixed(2)
+        : "0.00";
+
+      const sortedByHours = [...computedOfficers].sort((a, b) => b.totalMins - a.totalMins);
+      const topOfficer = sortedByHours[0];
+
+      let peakDayLabel = "--";
+      let peakDayMins = 0;
+      activeDateLabels.forEach(lbl => {
+        const sumMins = computedOfficers.reduce((acc, o) => acc + (o.daily[lbl] || 0), 0);
+        if (sumMins > peakDayMins) {
+          peakDayMins = sumMins;
+          peakDayLabel = lbl;
+        }
+      });
+
+      document.getElementById("kpiTotalOfficers").textContent = totalOfficers;
+      document.getElementById("kpiActiveSub").textContent = `${activeOfficersCount} active on duty`;
+      document.getElementById("kpiTotalHours").textContent = `${grandTotalHours.toLocaleString()}h`;
+      document.getElementById("kpiTotalMins").textContent = `${grandTotalMins.toLocaleString()} mins`;
+      document.getElementById("kpiAvgHours").textContent = `Avg ${avgActiveHrs} hrs per active officer`;
+
+      if (topOfficer && topOfficer.totalMins > 0) {
+        document.getElementById("kpiTopOfficer").textContent = topOfficer.name;
+        document.getElementById("kpiTopOfficerHrs").textContent = `${topOfficer.totalHours} hrs (${topOfficer.totalMins} mins)`;
+      } else if (state.selectedMonth === "ALL" && state.selectedWeek === "ALL" && state.sheetKpis?.topOfficer) {
+        document.getElementById("kpiTopOfficer").textContent = String(state.sheetKpis.topOfficer);
+        document.getElementById("kpiTopOfficerHrs").textContent = "Duty Summary leader";
+      } else {
+        document.getElementById("kpiTopOfficer").textContent = "--";
+        document.getElementById("kpiTopOfficerHrs").textContent = "0 hrs logged";
+      }
+
+      if (state.summaryMode && !monthlyView) {
+        document.getElementById("kpiPeakDate").textContent = "N/A";
+        document.getElementById("kpiPeakDateHrs").textContent = "Daily data not in Duty Summary";
+      } else {
+        document.getElementById("kpiPeakDate").textContent = peakDayMins > 0 ? peakDayLabel : "--";
+        document.getElementById("kpiPeakDateHrs").textContent = `${(peakDayMins / 60).toFixed(2)} hrs (${peakDayMins} mins)`;
+      }
+
+      renderCharts(buildMonthlyActivityChartData(), sortedByHours.slice(0, 10));
+
+      let filtered = computedOfficers.filter(o => {
+        if (state.activityFilter === "ACTIVE" && o.totalMins <= 0) return false;
+        if (state.activityFilter === "INACTIVE" && o.totalMins > 0) return false;
+        if (state.searchQuery) {
+          const q = state.searchQuery.toLowerCase();
+          return o.name.toLowerCase().includes(q) || o.deptRank.toLowerCase().includes(q);
+        }
+        return true;
+      });
+
+      filtered.sort((a, b) => {
+        if (state.sortBy === "hours_desc") return b.totalMins - a.totalMins;
+        if (state.sortBy === "hours_asc") return a.totalMins - b.totalMins;
+        if (state.sortBy === "days_desc") return b.activeDays - a.activeDays || b.totalMins - a.totalMins;
+        return Number(a.sno) - Number(b.sno);
+      });
+
+      renderLeaderboardTable(filtered, activeDateLabels);
+    }
+
+    function buildMonthlyActivityChartData() {
+      const dateColumns = state.summaryMode ? state.trackerDateColumns : state.dateColumns;
+      const officers = state.summaryMode ? state.trackerOfficers : state.officers;
+      const months = [...new Set(dateColumns.map(column => column.month))];
+
+      if (state.selectedMonth !== "ALL") {
+        const monthColumns = dateColumns.filter(column => column.month === state.selectedMonth);
+        return {
+          labels: monthColumns.map(column => column.label),
+          values: monthColumns.map(column =>
+            officers.filter(officer => (officer.daily[column.label] || 0) > 0).length
+          ),
+          title: `${state.selectedMonth} Active Officers`,
+          subtitle: `Officers with duty logged per date in ${state.selectedMonth}`,
+          badge: `${state.selectedMonth} 2026 • ${monthColumns.length} dates`
+        };
+      }
+
+      return {
+        labels: months.map(month => `${month} 2026`),
+        values: months.map(month =>
+          officers.filter(officer =>
+            dateColumns.some(column =>
+              column.month === month && (officer.daily[column.label] || 0) > 0
+            )
+          ).length
+        ),
+        title: "Monthly Active Officers",
+        subtitle: "Officers with duty logged in each month",
+        badge: `${months.length} months`
+      };
+    }
+
+    function renderCharts(activityData, top10) {
+      document.getElementById("activityChartTitle").textContent = activityData.title;
+      document.getElementById("activityChartSubtitle").textContent = activityData.subtitle;
+      document.getElementById("activityChartBadge").textContent = activityData.badge;
+
+      const activityCtx = document.getElementById("monthlyActivityChart").getContext("2d");
+      if (monthlyActivityChartInstance) monthlyActivityChartInstance.destroy();
+      monthlyActivityChartInstance = new Chart(activityCtx, {
+        type: "bar",
+        data: {
+          labels: activityData.labels,
+          datasets: [{
+            label: "Active Officers",
+            data: activityData.values,
+            backgroundColor: "rgba(56, 189, 248, 0.72)",
+            hoverBackgroundColor: "rgba(56, 189, 248, 1)",
+            borderColor: "#38bdf8",
+            borderWidth: 1,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "#0f172a",
+              borderColor: "#38bdf8",
+              borderWidth: 1,
+              callbacks: { label: ctx => ` ${ctx.parsed.y} active officers` }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: "#94a3b8", font: { size: 10 }, maxRotation: 45 }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: "rgba(148,163,184,0.1)" },
+              ticks: { color: "#94a3b8", font: { size: 11 }, precision: 0 }
+            }
+          }
+        }
+      });
+
+      const topCtx = document.getElementById("topOfficersChart").getContext("2d");
+      if (topChartInstance) topChartInstance.destroy();
+      topChartInstance = new Chart(topCtx, {
+        type: "bar",
+        data: {
+          labels: top10.map(o => o.name),
+          datasets: [{
+            label: "Duty Hours",
+            data: top10.map(o => o.totalHours),
+            backgroundColor: top10.map((_, i) =>
+              i === 0 ? "rgba(251, 191, 36, 0.85)" : "rgba(16, 185, 129, 0.75)"
+            ),
+            borderRadius: 6
+          }]
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "#0f172a",
+              borderColor: "#10b981",
+              borderWidth: 1,
+              callbacks: {
+                label: ctx => ` ${ctx.parsed.x} hrs`
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              grid: { color: "rgba(148, 163, 184, 0.1)" },
+              ticks: { color: "#94a3b8", font: { size: 10 } }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { color: "#e2e8f0", font: { size: 11, weight: "600" } }
+            }
+          }
+        }
+      });
+    }
+
+    function renderLeaderboardTable(officers, activeDateLabels) {
+      const tbody = document.getElementById("rosterTableBody");
+      if (officers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="py-10 text-center text-slate-500 text-sm">No officer records match your current filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = officers.map((off, idx) => {
+        const rankNum = idx + 1;
+        const rankBadge = rankNum === 1 && off.totalMins > 0
+          ? `<span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-400/30 font-bold text-xs">#1</span>`
+          : rankNum === 2 && off.totalMins > 0
+          ? `<span class="px-2 py-0.5 rounded-md bg-slate-400/20 text-slate-200 border border-slate-400/30 font-bold text-xs">#2</span>`
+          : rankNum === 3 && off.totalMins > 0
+          ? `<span class="px-2 py-0.5 rounded-md bg-orange-500/20 text-orange-300 border border-orange-400/30 font-bold text-xs">#3</span>`
+          : `<span class="text-slate-500 mono text-xs">#${rankNum}</span>`;
+
+        const statusBadge = off.totalMins >= 600
+          ? `<span class="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">ELITE DUTY</span>`
+          : off.totalMins > 0
+          ? `<span class="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30">ACTIVE</span>`
+          : `<span class="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-slate-800 text-slate-400 border border-slate-700">NO LOGS</span>`;
+
+        return `
+          <tr data-officer="${encodeURIComponent(off.name)}" class="officer-row hover:bg-sky-500/5 cursor-pointer transition">
+            <td class="py-3.5 px-4">${rankBadge}</td>
+            <td class="py-3.5 px-4 mono text-xs text-slate-400">${off.sno}</td>
+            <td class="py-3.5 px-4 font-bold text-white">${off.name}</td>
+            <td class="py-3.5 px-4 text-xs text-slate-300">${off.deptRank}</td>
+            <td class="py-3.5 px-4 text-right mono text-xs text-slate-300">${off.activeDays}d</td>
+            <td class="py-3.5 px-4 text-right mono text-xs text-slate-300">${off.peakMins > 0 ? `${off.peakDate} (${off.peakMins}m)` : "-"}</td>
+            <td class="py-3.5 px-4 text-right mono text-xs text-slate-300">${off.totalMins.toLocaleString()}</td>
+            <td class="py-3.5 px-4 text-right mono font-bold ${off.totalMins > 0 ? "text-emerald-400" : "text-slate-500"}">${off.totalHours.toFixed(2)} hrs</td>
+            <td class="py-3.5 px-4 text-center">${statusBadge}</td>
+          </tr>
+        `;
+      }).join("");
+
+      tbody.querySelectorAll(".officer-row").forEach(row => {
+        row.addEventListener("click", () => {
+          const name = decodeURIComponent(row.dataset.officer);
+          const off = officers.find(o => o.name === name);
+          if (off) openOfficerModal(off, activeDateLabels);
+        });
+      });
+    }
+
+    // Officer Drill-Down Modal
+    function openOfficerModal(officer, activeDateLabels) {
+      document.getElementById("modalRankBadge").textContent = officer.deptRank;
+      document.getElementById("modalOfficerName").textContent = officer.name;
+      document.getElementById("modalSummaryLine").textContent =
+        `Total: ${officer.totalHours.toFixed(2)} hrs (${officer.totalMins} mins) • Active Days: ${officer.activeDays}` +
+        (state.summaryMode ? "" : ` • Peak: ${officer.peakDate} (${officer.peakMins} mins)`);
+
+      const modalCtx = document.getElementById("modalOfficerChart").getContext("2d");
+      if (modalChartInstance) modalChartInstance.destroy();
+      modalChartInstance = new Chart(modalCtx, {
+        type: "line",
+        data: {
+          labels: activeDateLabels,
+          datasets: [{
+            label: "Minutes Logged",
+            data: activeDateLabels.map(lbl => officer.daily[lbl] || 0),
+            borderColor: "#38bdf8",
+            backgroundColor: "rgba(56, 189, 248, 0.18)",
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: "#94a3b8", font: { size: 10 } } },
+            y: { beginAtZero: true, grid: { color: "rgba(148,163,184,0.1)" }, ticks: { color: "#94a3b8", font: { size: 10 } } }
+          }
+        }
+      });
+
+      const loggedDates = activeDateLabels.filter(lbl => (officer.daily[lbl] || 0) > 0);
+      const chipsEl = document.getElementById("modalShiftChips");
+      chipsEl.innerHTML = loggedDates.length
+        ? loggedDates.map(lbl => {
+            const m = officer.daily[lbl];
+            return `<span class="px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-xs mono text-slate-200">
+              <strong class="text-sky-400">${lbl}:</strong> ${m}m (${(m / 60).toFixed(1)}h)
+            </span>`;
+          }).join("")
+        : `<span class="text-xs text-slate-500">No duty minutes logged in this period.</span>`;
+
+      document.getElementById("officerModal").classList.remove("hidden");
+    }
+
+    // =========================================================================
+    // 6. DUTY LOG TRACKER FULL MATRIX VIEW RENDERING
+    // =========================================================================
+    function rebuildTrackerDateFilter() {
+      const select = document.getElementById("trackerDateFilter");
+      const prev = select.value;
+      select.innerHTML = `<option value="ALL">All Dates &amp; Weekly Summaries</option>` +
+        state.trackerDateCols.map(d => `<option value="${d.index}">${d.header}</option>`).join("");
+      if ([...select.options].some(o => o.value === prev)) {
+        select.value = prev;
+      }
+    }
+
+    function renderTrackerMatrix() {
+      const headers = state.trackerHeaders;
+      const rows = state.trackerRows;
+      const dateCols = state.trackerDateCols;
+
+      if (!headers.length) return;
+
+      const activeEntries = rows.reduce((sum, row) => {
+        return sum + dateCols.filter(d => Number(String(row[d.index] || "0").replace(/,/g, "")) > 0).length;
+      }, 0);
+
+      const totalMinutes = rows.reduce((sum, row) => {
+        return sum + dateCols.reduce((s, d) => s + (Number(String(row[d.index] || "0").replace(/,/g, "")) || 0), 0);
+      }, 0);
+
+      document.getElementById("trackerKpiOfficers").textContent = rows.length;
+      document.getElementById("trackerKpiDates").textContent = dateCols.length;
+      document.getElementById("trackerKpiActive").textContent = activeEntries.toLocaleString();
+      document.getElementById("trackerKpiHours").textContent = `${(totalMinutes / 60).toFixed(1)}h`;
+
+      const nameIndex = headers.findIndex(h => /^(officer\s*name|name)$/i.test(h));
+      const rankIndex = headers.findIndex(h => /^(occupation|rank)$/i.test(h));
+      const selected = document.getElementById("trackerDateFilter").value;
+      const query = document.getElementById("trackerSearchInput").value.trim().toLowerCase();
+
+      let visibleIndexes = headers.map((_, i) => i);
+      if (selected !== "ALL") {
+        visibleIndexes = [0, nameIndex, Number(selected)].filter((v, i, a) => v >= 0 && a.indexOf(v) === i);
+      }
+
+      document.getElementById("trackerTableHead").innerHTML =
+        `<tr>${visibleIndexes.map(i => `<th>${headers[i] || "—"}</th>`).join("")}</tr>`;
+
+      const visibleRows = rows.filter(row => {
+        const officerName = String(row[nameIndex] || "").toLowerCase();
+        const rank = rankIndex === -1 ? "" : String(row[rankIndex] || "").toLowerCase();
+        return officerName.includes(query) || rank.includes(query);
+      });
+
+      document.getElementById("trackerTableBody").innerHTML = visibleRows.length
+        ? visibleRows.map(row => `<tr>${visibleIndexes.map(i => {
+            const raw = row[i];
+            const isEmpty = raw === "" || raw === null || raw === undefined;
+            const value = isEmpty ? "—" : raw;
+            const isName = i === nameIndex;
+            const numVal = Number(String(raw || "0").replace(/,/g, ""));
+            const highlightClass = !isName && !isEmpty && !isNaN(numVal) && numVal > 0
+              ? "text-emerald-300 font-semibold"
+              : "text-slate-300";
+            return `<td class="${isName ? "font-bold text-white" : `${highlightClass} mono text-xs`}">${value}</td>`;
+          }).join("")}</tr>`).join("")
+        : `<tr><td colspan="${visibleIndexes.length}" class="text-center text-slate-500 py-10">No matching officer records found.</td></tr>`;
+
+      document.getElementById("trackerRecordCount").textContent = `${visibleRows.length} of ${rows.length} officers displayed`;
+      document.getElementById("trackerViewBadge").textContent = selected === "ALL" ? "ALL COLUMNS" : headers[Number(selected)];
+    }
+
+    // =========================================================================
+    // 7. VIEW SWITCHER & ADMIN AUTH
+    // =========================================================================
+    function switchView(viewName) {
+      state.activeView = viewName;
+      const isDash = viewName === "DASHBOARD";
+
+      document.getElementById("dashboardView").classList.toggle("hidden", !isDash);
+      document.getElementById("trackerView").classList.toggle("hidden", isDash);
+
+      const dashBtn = document.getElementById("tabDashboardBtn");
+      const trackBtn = document.getElementById("tabTrackerBtn");
+
+      if (isDash) {
+        dashBtn.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg bg-sky-500 text-slate-950 shadow transition";
+        trackBtn.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg text-slate-300 hover:text-white transition";
+      } else {
+        trackBtn.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg bg-sky-500 text-slate-950 shadow transition";
+        dashBtn.className = "px-3.5 py-1.5 text-xs font-bold rounded-lg text-slate-300 hover:text-white transition";
+        renderTrackerMatrix();
+      }
+    }
+
+    function updateAdminUi() {
+      document.querySelectorAll(".admin-only").forEach(el => {
+        el.classList.toggle("hidden", !state.isAdmin);
+      });
+      document.getElementById("adminLoginBtn").classList.toggle("hidden", state.isAdmin);
+      document.getElementById("adminLogoutBtn").classList.toggle("hidden", !state.isAdmin);
+      setAlertBannerVisible(state.alertBannerVisible);
+      setupAutoRefresh();
+    }
+
+    function setupAutoRefresh() {
+      if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+      }
+      if (state.isAdmin && document.getElementById("autoRefreshToggle").checked) {
+        autoRefreshTimer = setInterval(syncSheetData, 60000);
+      }
+    }
+
+    // =========================================================================
+    // 8. EVENT LISTENERS & INITIALIZATION
+    // =========================================================================
+    document.getElementById("tabDashboardBtn").addEventListener("click", () => switchView("DASHBOARD"));
+    document.getElementById("tabTrackerBtn").addEventListener("click", () => switchView("TRACKER"));
+
+    document.getElementById("adminLoginBtn").addEventListener("click", () => {
+      document.getElementById("adminModal").classList.remove("hidden");
+      document.getElementById("adminUsername").focus();
+    });
+
+    document.getElementById("closeAdminModalBtn").addEventListener("click", () => {
+      document.getElementById("adminModal").classList.add("hidden");
+      document.getElementById("adminLoginError").classList.add("hidden");
+    });
+
+    document.getElementById("adminModal").addEventListener("click", e => {
+      if (e.target.id === "adminModal") {
+        document.getElementById("adminModal").classList.add("hidden");
+      }
+    });
+
+    document.getElementById("adminLoginForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const username = document.getElementById("adminUsername").value.trim();
+      const password = document.getElementById("adminPassword").value;
+
+      const account = window.HRP_ADMIN_ACCOUNT;
+      if (account && username === account.username && password === account.password) {
+        state.isAdmin = true;
+        sessionStorage.setItem("hrp_admin_session", "true");
+        document.getElementById("adminModal").classList.add("hidden");
+        document.getElementById("adminLoginError").classList.add("hidden");
+        document.getElementById("adminLoginForm").reset();
+        updateAdminUi();
+      } else {
+        document.getElementById("adminLoginError").classList.remove("hidden");
+      }
+    });
+
+    document.getElementById("adminLogoutBtn").addEventListener("click", () => {
+      state.isAdmin = false;
+      sessionStorage.removeItem("hrp_admin_session");
+      updateAdminUi();
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", () => {
+      if (state.isAdmin) {
+        syncSheetData();
+      }
+    });
+    document.getElementById("retrySyncBtn").addEventListener("click", () => {
+      if (!state.isAdmin) return;
+      syncSheetData();
+    });
+    document.getElementById("autoRefreshToggle").addEventListener("change", setupAutoRefresh);
+
+    // Executive Dashboard Filters
+    document.getElementById("weekFilter").addEventListener("change", e => {
+      state.selectedWeek = e.target.value;
+      renderDashboard();
+    });
+    document.getElementById("activityFilter").addEventListener("change", e => {
+      state.activityFilter = e.target.value;
+      renderDashboard();
+    });
+    document.getElementById("searchInput").addEventListener("input", e => {
+      state.searchQuery = e.target.value.trim();
+      renderDashboard();
+    });
+    document.getElementById("sortSelect").addEventListener("change", e => {
+      state.sortBy = e.target.value;
+      renderDashboard();
+    });
+
+    // Tracker Matrix Filters
+    document.getElementById("trackerSearchInput").addEventListener("input", renderTrackerMatrix);
+    document.getElementById("trackerDateFilter").addEventListener("change", renderTrackerMatrix);
+
+    // Officer Modal Close
+    document.getElementById("closeModalBtn").addEventListener("click", () => {
+      document.getElementById("officerModal").classList.add("hidden");
+    });
+    document.getElementById("officerModal").addEventListener("click", e => {
+      if (e.target.id === "officerModal") {
+        document.getElementById("officerModal").classList.add("hidden");
+      }
+    });
+
+    // Boot Application
+    updateAdminUi();
+    syncSheetData();
+  </script>
+</body>
+</html>
